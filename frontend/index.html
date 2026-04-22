@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEMA Start Page</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      width: 350px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      font-size: 32px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #2d89ef;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #1b5fbf;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TEMA</h1>
+    <button id="createCanvasBtn">Create New Canvas</button>
+    <button id="openCanvasBtn">Open Existing Canvas</button>
+  </div>
+
+  <script>
+    document.getElementById("createCanvasBtn").addEventListener("click", () => {
+      alert("Create New Canvas clicked");
+    });
+
+    document.getElementById("openCanvasBtn").addEventListener("click", () => {
+      alert("Open Existing Canvas clicked");
+    });
+  </script>
+</body>
+</html>
