@@ -1,0 +1,16 @@
+# https://dev.to/nhannguyenuri/setting-up-postgresql-in-docker-a-step-by-step-guide-3gc4
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15.17-trixie
+    container_name: development
+    environment:
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_USER: dev
+      POSTGRES_DB: dev_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - "pgdata:/TEMA/data"
+volumes:
+  pgdata:
