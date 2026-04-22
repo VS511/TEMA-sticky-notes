@@ -5,4 +5,4 @@ ENV POSTGRES_PASSWORD=12345
 ENV POSTGRES_USER=dev
 ENV POSTGRES_DB=dev_db
 
-CMD ["echo", "hello, world"]
+CMD [ "python", "--version" ]
