@@ -9,10 +9,18 @@
       margin: 0;
       font-family: Arial, sans-serif;
       height: 100vh;
+      background-color: #f4f4f4;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #startPage {
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: #f4f4f4;
     }
 
     .container {
@@ -45,23 +53,141 @@
     button:hover {
       background-color: #1b5fbf;
     }
+
+    #canvasPage {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      background: #ffffff;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .toolbar h2 {
+      margin: 0;
+      margin-right: auto;
+      font-size: 22px;
+    }
+
+    #canvasArea {
+      flex: 1;
+      background-color: #fafafa;
+      border-top: 1px solid #ddd;
+      position: relative;
+    }
+
+    .sticky-note {
+        width: 160px;
+        min-height: 120px;
+        background-color: #ffef88;
+        border: 1px solid #d8c95f;
+        border-radius: 8px;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
+        padding: 12px;
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        font-size: 14px;
+        box-sizing: border-box;
+        cursor: grab;
+    }
+
+    .sticky-note.dragging {
+        cursor: grabbing;
+    }
+
+
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>TEMA</h1>
-    <button id="createCanvasBtn">Create New Canvas</button>
-    <button id="openCanvasBtn">Open Existing Canvas</button>
+  <div id="startPage">
+    <div class="container">
+      <h1>TEMA</h1>
+      <button id="createCanvasBtn">Create New Canvas</button>
+      <button id="openCanvasBtn">Open Existing Canvas</button>
+    </div>
+  </div>
+
+  <div id="canvasPage" class="hidden">
+    <div class="toolbar">
+      <h2>Canvas</h2>
+      <button id="backBtn" style="width: auto; padding: 10px 16px;">Back</button>
+      <button id="addStickyBtn" style="width: auto; padding: 10px 16px;">Add Sticky Note</button>
+    </div>
+    <div id="canvasArea"></div>
   </div>
 
   <script>
-    document.getElementById("createCanvasBtn").addEventListener("click", () => {
-      alert("Create New Canvas clicked");
+  const startPage = document.getElementById("startPage");
+  const canvasPage = document.getElementById("canvasPage");
+
+  const createCanvasBtn = document.getElementById("createCanvasBtn");
+  const openCanvasBtn = document.getElementById("openCanvasBtn");
+  const backBtn = document.getElementById("backBtn");
+  const addStickyBtn = document.getElementById("addStickyBtn");
+  const canvasArea = document.getElementById("canvasArea");
+
+  createCanvasBtn.addEventListener("click", () => {
+    startPage.classList.add("hidden");
+    canvasPage.classList.remove("hidden");
+  });
+
+  openCanvasBtn.addEventListener("click", () => {
+    alert("Open Existing Canvas is not implemented yet.");
+  });
+
+  backBtn.addEventListener("click", () => {
+    canvasPage.classList.add("hidden");
+    startPage.classList.remove("hidden");
+  });
+
+  function makeStickyDraggable(stickyNote) {
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    stickyNote.addEventListener("mousedown", (event) => {
+        if (event.target.classList.contains("sticky-note-text")) {
+        return;
+        }
+
+        isDragging = true;
+        stickyNote.classList.add("dragging");
+
+        offsetX = event.clientX - stickyNote.offsetLeft;
+        offsetY = event.clientY - stickyNote.offsetTop;
     });
 
-    document.getElementById("openCanvasBtn").addEventListener("click", () => {
-      alert("Open Existing Canvas clicked");
+    document.addEventListener("mousemove", (event) => {
+        if (!isDragging) return;
+
+        stickyNote.style.left = `${event.clientX - offsetX}px`;
+        stickyNote.style.top = `${event.clientY - offsetY}px`;
     });
-  </script>
+
+    document.addEventListener("mouseup", () => {
+        if (isDragging) {
+        isDragging = false;
+        stickyNote.classList.remove("dragging");
+        }
+    });
+  }
+
+  addStickyBtn.addEventListener("click", () => {
+    const stickyNote = document.createElement("div");
+    stickyNote.classList.add("sticky-note");
+    stickyNote.textContent = "New Sticky Note";
+    stickyNote.contentEditable = true;
+
+    canvasArea.appendChild(stickyNote);
+    makeStickyDraggable(stickyNote);
+  });
+</script>
 </body>
 </html>
