@@ -4,6 +4,9 @@ import psycopg2
 
 
 class CodeDataService:
+    """
+    Service to connect to a canvas' postgres table to edit its codes' data
+    """
 
     _columns: list[str] = ["id", "codeid", "collection", "text", "color", "position"]
     _text_columns: list[str] = ["collection", "text"]
@@ -123,6 +126,16 @@ class CodeDataService:
         self.cur.execute(f"""SELECT * FROM {self.canvas_name}
                          WHERE codeid = {codeid};""")
         return self.cur.fetchall()
+    
+    def get_max_codeid(self) -> int | None:
+
+        # https://stackoverflow.com/questions/4910790/how-do-i-find-the-largest-value-in-a-column-in-postgres-sql
+        self.cur.execute(f"""SELECT codeid
+                         FROM {self.canvas_name}
+                         ORDER BY codeid
+                         DESC
+                         LIMIT 1;""")
+        return self.cur.fetchone()[0]
 
     def get_collections(self) -> list[str] | None:
         self.cur.execute(f"""SELECT DISTINCT collection
@@ -324,3 +337,4 @@ if __name__ == "__main__":
         print(codes.get_code_by_codeid(1))
         print(codes.get_code_by_id(100))
         print(codes.get_collections())
+        print(codes.get_max_codeid())
