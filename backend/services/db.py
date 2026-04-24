@@ -28,6 +28,9 @@ class CodeDataService:
 
 
 class CanvasDataService:
+    """
+    Service to connect to the Postgres database containing information on all canvases
+    """
 
     def __init__(self):
         pass
@@ -95,7 +98,19 @@ class CanvasDataService:
         return self.cur.fetchall()
     
     def get_canvas_id(self, canvas_name: str = None) -> int | None:
+        """
+        Get a canvas' id based on its name
+        # Parameters
+            canvas_name (str): The name of the canvas
+        # Raises
+            TypeError if canvas_name is None
+            ValueError if canvas_name is a whitespace string
+        # Returns
+            An int corresponding to the canvas' id in the database or None if no entry with canvas_name was found
+        """
 
+        if canvas_name is None:
+            raise TypeError("canvas_name is None")
         if canvas_name.strip() == "":
             raise ValueError("Whitespace string given for canvas_name")
         
@@ -105,7 +120,19 @@ class CanvasDataService:
         return self.cur.fetchone()[0]
 
     def get_canvas_name(self, id: int = None) -> str | None:
+        """
+        Get a canvas' name based on its id in the Postgres database
+        # Parameters
+            id (int): The id of the canvas in the Postgres database
+        # Raises
+            TypeError if id is None
+            ValueError if id < 0
+        # Returns
+            A string corresponding to the name of the canvas with the id or None if no entry with id was found
+        """
 
+        if id is None:
+            raise TypeError("id is None")
         if id < 0:
             raise ValueError("Incorrect id provided")
         
@@ -121,15 +148,17 @@ class CanvasDataService:
             canvas_name (str): The name of the canvas
             id (int): The id of the canvas in the Postgres database
         # Raises
+            TypeError if both id and canvas_name are None
             ValueError if an id < 0 is given
             ValueError if a whitespace string is provided for canvas_name
         # Note
             Only the canvas_name or id should be provided, providing both does not change the result
         """
 
-        if id is not None:
-            if id < 0:
-                raise ValueError("Incorrect id given in delete_canvas")
+        if id is None and canvas_name is None:
+            raise TypeError("id and canvas_name are None")
+        if id < 0:
+            raise ValueError("Incorrect id given in delete_canvas")
         if canvas_name.strip() == "":
             raise ValueError("Whitespace string given for canvas_name")
         
