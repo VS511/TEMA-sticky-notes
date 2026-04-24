@@ -132,6 +132,9 @@ class CodeDataService:
     def fetch_codes(self) -> list[tuple]:
         self.cur.execute(f"""SELECT * FROM {self.canvas_name}""")
         return self.cur.fetchall()
+    
+    def delete_canvas_table(self):
+        self.cur.execute(f"""DROP TABLE {self.canvas_name}""")
 
 
 class CanvasDataService:
@@ -307,6 +310,9 @@ if __name__ == "__main__":
         "position": (2.0, 3.5),
         "codeid": 5,
     }
+
+    with CodeDataService(canvas_name="codetest") as codes:
+        print(codes.delete_canvas_table())
 
     with CodeDataService(canvas_name="codetest") as codes:
         print(codes.delete_code_entry(5))
