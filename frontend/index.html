@@ -109,8 +109,19 @@
   <div id="startPage">
     <div class="container">
       <h1>TEMA</h1>
+
+      <input
+        id="canvasNameInput"
+        type="text"
+        placeholder="Enter canvas name"
+        style="width: 100%; padding: 12px; margin-bottom: 12px; box-sizing: border-box;"
+      />
+
       <button id="createCanvasBtn">Create New Canvas</button>
       <button id="openCanvasBtn">Open Existing Canvas</button>
+
+
+      <div id="canvasList" style="margin-top: 16px;"></div>
     </div>
   </div>
 
@@ -132,14 +143,115 @@
   const backBtn = document.getElementById("backBtn");
   const addStickyBtn = document.getElementById("addStickyBtn");
   const canvasArea = document.getElementById("canvasArea");
+  const canvasNameInput = document.getElementById("canvasNameInput");
+  const canvasList = document.getElementById("canvasList");
 
-  createCanvasBtn.addEventListener("click", () => {
-    startPage.classList.add("hidden");
-    canvasPage.classList.remove("hidden");
+  let currentCanvasId = null;
+  let currentCanvasName = null;
+
+  createCanvasBtn.addEventListener("click", async () => {
+    console.log("Create New Canvas button clicked");
+
+    const canvasName = canvasNameInput.value.trim();
+
+    if (!canvasName) {
+      alert("Please enter a canvas name.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/canvases", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: canvasName })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert("Could not create canvas: " + data.error);
+        console.error("Backend error:", data);
+        return;
+      }
+
+      console.log("Created canvas:", data);
+
+      currentCanvasId = data.id;
+      currentCanvasName = data.name;
+
+      document.querySelector(".toolbar h2").textContent =
+        `Canvas: ${currentCanvasName}`;
+
+      canvasArea.innerHTML = "";
+
+      startPage.classList.add("hidden");
+      canvasPage.classList.remove("hidden");
+
+    } catch (error) {
+      alert("Could not connect to backend.");
+      console.error("Connection error:", error);
+    }
   });
 
-  openCanvasBtn.addEventListener("click", () => {
-    alert("Open Existing Canvas is not implemented yet.");
+
+
+
+
+  openCanvasBtn.addEventListener("click", async () => {
+    console.log("Open Existing Canvas button clicked");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/canvases");
+      const canvases = await response.json();
+
+      if (!response.ok) {
+        alert("Could not load canvases.");
+        console.error("Backend error:", canvases);
+        return;
+      }
+
+      console.log("Loaded canvases:", canvases);
+
+      canvasList.innerHTML = "";
+
+      if (canvases.length === 0) {
+        canvasList.textContent = "No canvases found.";
+        return;
+      }
+
+      canvases.forEach((canvas) => {
+        const canvasButton = document.createElement("button");
+        canvasButton.textContent = `${canvas.id}: ${canvas.name}`;
+        canvasButton.style.backgroundColor = "#666";
+        canvasButton.style.marginTop = "8px";
+
+        canvasButton.addEventListener("click", () => {
+          currentCanvasId = canvas.id;
+          currentCanvasName = canvas.name;
+
+          console.log("Opened canvas:", {
+            id: currentCanvasId,
+            name: currentCanvasName
+          });
+
+          document.querySelector(".toolbar h2").textContent =
+            `Canvas: ${currentCanvasName}`;
+
+          startPage.classList.add("hidden");
+          canvasPage.classList.remove("hidden");
+
+          loadStickyNotesForCurrentCanvas();
+        });
+
+        canvasList.appendChild(canvasButton);
+      });
+
+    } catch (error) {
+      alert("Could not connect to backend.");
+      console.error("Connection error:", error);
+    }
   });
 
   backBtn.addEventListener("click", () => {
@@ -164,6 +276,7 @@
         offsetY = event.clientY - stickyNote.offsetTop;
     });
 
+
     document.addEventListener("mousemove", (event) => {
         if (!isDragging) return;
 
@@ -173,21 +286,173 @@
 
     document.addEventListener("mouseup", () => {
         if (isDragging) {
-        isDragging = false;
-        stickyNote.classList.remove("dragging");
+          isDragging = false;
+          stickyNote.classList.remove("dragging");
+          saveStickyNote(stickyNote);
         }
     });
   }
 
-  addStickyBtn.addEventListener("click", () => {
-    const stickyNote = document.createElement("div");
-    stickyNote.classList.add("sticky-note");
-    stickyNote.textContent = "New Sticky Note";
-    stickyNote.contentEditable = true;
+function createStickyNoteElement(noteData) {
+  const stickyNote = document.createElement("div");
+  stickyNote.classList.add("sticky-note");
 
-    canvasArea.appendChild(stickyNote);
-    makeStickyDraggable(stickyNote);
+  stickyNote.dataset.noteId = noteData.id;
+
+  stickyNote.style.left = `${noteData.x}px`;
+  stickyNote.style.top = `${noteData.y}px`;
+
+  const textArea = document.createElement("div");
+  textArea.classList.add("sticky-note-text");
+  textArea.contentEditable = true;
+  textArea.textContent = noteData.text;
+
+  stickyNote.appendChild(textArea);
+  canvasArea.appendChild(stickyNote);
+
+  makeStickyDraggable(stickyNote);
+
+  textArea.addEventListener("blur", () => {
+    saveStickyNote(stickyNote);
   });
+
+  return stickyNote;
+}
+
+
+async function saveStickyNote(stickyNote) {
+  if (!currentCanvasId) {
+    console.error("No canvas is currently open.");
+    return;
+  }
+
+  const noteId = stickyNote.dataset.noteId;
+  const text = stickyNote.querySelector(".sticky-note-text").textContent;
+
+  const x = parseFloat(stickyNote.style.left);
+  const y = parseFloat(stickyNote.style.top);
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes/${noteId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: text,
+          x: x,
+          y: y,
+          color: 0
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Could not save note:", data);
+      return;
+    }
+
+    console.log("Saved note:", data);
+
+  } catch (error) {
+    console.error("Connection error while saving note:", error);
+  }
+}
+
+
+async function loadStickyNotesForCurrentCanvas() {
+  if (!currentCanvasId) {
+    console.error("No canvas selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`
+    );
+
+    const notes = await response.json();
+
+    if (!response.ok) {
+      console.error("Could not load notes:", notes);
+      return;
+    }
+
+    canvasArea.innerHTML = "";
+
+    notes.forEach(note => {
+      createStickyNoteElement(note);
+    });
+
+    console.log("Loaded notes:", notes);
+
+  } catch (error) {
+    console.error("Connection error while loading notes:", error);
+  }
+}
+
+
+addStickyBtn.addEventListener("click", async () => {
+  if (!currentCanvasId) {
+    alert("Please open or create a canvas first.");
+    return;
+  }
+
+  const noteData = {
+    id: Date.now(),
+    text: "New Sticky Note",
+    x: 40,
+    y: 40,
+    color: 0
+  };
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(noteData)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert("Could not create sticky note: " + data.error);
+      console.error("Backend error:", data);
+      return;
+    }
+
+    console.log("Created sticky note:", data);
+
+    createStickyNoteElement(noteData);
+
+  } catch (error) {
+    alert("Could not connect to backend.");
+    console.error("Connection error:", error);
+  }
+});
+
+
+  console.log("Frontend script loaded");
+
+  fetch("http://localhost:5000/api/health")
+    .then(response => response.json())
+    .then(data => {
+      console.log("Backend response:", data);
+    })
+    .catch(error => {
+      console.error("Backend connection failed:", error);
+    });
+
+
 </script>
 </body>
 </html>
