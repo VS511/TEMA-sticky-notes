@@ -1,6 +1,7 @@
 ### Code for CodeDataService and CanvasDataService
 ### Each Canvas is associated with a table
 import psycopg2
+from psycopg2 import sql
 
 
 class CodeDataService:
@@ -10,6 +11,13 @@ class CodeDataService:
 
     _columns: list[str] = ["id", "codeid", "collection", "text", "color", "position"]
     _text_columns: list[str] = ["collection", "text"]
+
+    @staticmethod
+    def _format_value(entry: str, value):
+        if entry == "position":
+            x, y = value
+            return f"({float(x)},{float(y)})"
+        return value
 
     def __init__(self, canvas_name: str = None):
         """
@@ -44,15 +52,18 @@ class CodeDataService:
 
         self.cur = self.conn.cursor()
 
-        self.cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.canvas_name} (
+        self.cur.execute(sql.SQL("""CREATE TABLE IF NOT EXISTS {} (
                          id SERIAL PRIMARY KEY,
-                         codeid INT UNIQUE,
+                         codeid BIGINT UNIQUE,
                          collection VARCHAR(100),
                          text VARCHAR(1000),
                          color INT,
                          position POINT
                          );
-                         """)
+                         """).format(sql.Identifier(self.canvas_name)))
+        self.cur.execute(sql.SQL("""ALTER TABLE {}
+                         ALTER COLUMN codeid TYPE BIGINT;
+                         """).format(sql.Identifier(self.canvas_name)))
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -79,24 +90,27 @@ class CodeDataService:
         if "codeid" not in kwargs.keys():
             raise KeyError("codeid missing")
 
-        # Create entry strings dynamically based on the provided data for the insertion
-        entry_string: str = f"{','.join([entry for entry in kwargs if entry in self._columns])}"
-        data_list: list[str] = []
-        for entry in kwargs:
-            if entry in self._text_columns:
-                data_list.append(f"'{kwargs[entry]}'")
-            elif entry == "position":
-                data_list.append(f"point{str(kwargs[entry])}")
-            elif entry in self._columns:
-                data_list.append(f"{str(kwargs[entry])}")
+        entries = [entry for entry in kwargs if entry in self._columns]
+        values = [
+            self._format_value(entry, kwargs[entry])
+            for entry in entries
+        ]
 
-        data_string: str = ",".join(data_list)
+        self.cur.execute(
+            sql.SQL("INSERT INTO {} ({}) VALUES ({});").format(
+                sql.Identifier(self.canvas_name),
+                sql.SQL(", ").join(map(sql.Identifier, entries)),
+                sql.SQL(", ").join(sql.Placeholder() for _ in entries),
+            ),
+            values,
+        )
 
-        self.cur.execute(f"""INSERT INTO {self.canvas_name} ({entry_string}) VALUES
-                         ({data_string});""")
-        
-        self.cur.execute(f"""SELECT * FROM {self.canvas_name}
-                    WHERE codeid = {kwargs["codeid"]};""")
+        self.cur.execute(
+            sql.SQL("SELECT * FROM {} WHERE codeid = %s;").format(
+                sql.Identifier(self.canvas_name)
+            ),
+            (kwargs["codeid"],),
+        )
         
         return self.cur.fetchone()[0]
 
@@ -112,8 +126,12 @@ class CodeDataService:
         if codeid is None:
             TypeError("codeid is of type None")
 
-        self.cur.execute(f"""DELETE FROM {self.canvas_name}
-                         WHERE codeid = {codeid};""")
+        self.cur.execute(
+            sql.SQL("DELETE FROM {} WHERE codeid = %s;").format(
+                sql.Identifier(self.canvas_name)
+            ),
+            (codeid,),
+        )
 
     def update_code_entry(self, **kwargs):
         """
@@ -132,22 +150,28 @@ class CodeDataService:
         if "codeid" not in kwargs.keys():
             raise KeyError("codeid missing")
 
-        # Generate the SET string dynamically based on the provided data
-        data_list: list[str] = []
+        # Generate the SET clause dynamically based on the provided data.
+        assignments = []
+        values = []
         for entry in kwargs:
-            if entry in self._text_columns:
-                data_list.append(f"{entry} = '{kwargs[entry]}'")
-            elif entry == "position":
-                data_list.append(f"{entry} = point{str(kwargs[entry])}")
-            elif entry in self._columns and entry not in ["id", "codeid"]:
-                data_list.append(f"{entry} = {str(kwargs[entry])}")
+            if entry in self._columns and entry not in ["id", "codeid"]:
+                assignments.append(
+                    sql.SQL("{} = %s").format(sql.Identifier(entry))
+                )
+                values.append(self._format_value(entry, kwargs[entry]))
 
-        data_string: str = ",\n\t".join(data_list)
+        if not assignments:
+            return
 
-        self.cur.execute(f"""UPDATE {self.canvas_name}
-                         SET
-                            {data_string}
-                         WHERE codeid = {kwargs["codeid"]};""")
+        values.append(kwargs["codeid"])
+
+        self.cur.execute(
+            sql.SQL("UPDATE {} SET {} WHERE codeid = %s;").format(
+                sql.Identifier(self.canvas_name),
+                sql.SQL(", ").join(assignments),
+            ),
+            values,
+        )
 
     def get_code_by_id(self, id: int = None) -> tuple | None:
         """
@@ -170,8 +194,12 @@ class CodeDataService:
             if id < 0:
                 raise ValueError("Invalid id")
 
-        self.cur.execute(f"""SELECT * FROM {self.canvas_name}
-                         WHERE id = {id};""")
+        self.cur.execute(
+            sql.SQL("SELECT * FROM {} WHERE id = %s;").format(
+                sql.Identifier(self.canvas_name)
+            ),
+            (id,),
+        )
         return self.cur.fetchall()
 
     def get_code_by_codeid(self, codeid: int = None) -> tuple | None:
@@ -191,8 +219,12 @@ class CodeDataService:
         if codeid is None:
             raise TypeError("codeid is None")
 
-        self.cur.execute(f"""SELECT * FROM {self.canvas_name}
-                         WHERE codeid = {codeid};""")
+        self.cur.execute(
+            sql.SQL("SELECT * FROM {} WHERE codeid = %s;").format(
+                sql.Identifier(self.canvas_name)
+            ),
+            (codeid,),
+        )
         return self.cur.fetchall()
     
     def get_max_codeid(self) -> int | None:
@@ -203,12 +235,13 @@ class CodeDataService:
         """
 
         # https://stackoverflow.com/questions/4910790/how-do-i-find-the-largest-value-in-a-column-in-postgres-sql
-        self.cur.execute(f"""SELECT codeid
-                         FROM {self.canvas_name}
+        self.cur.execute(sql.SQL("""SELECT codeid
+                         FROM {}
                          ORDER BY codeid
                          DESC
-                         LIMIT 1;""")
-        return self.cur.fetchone()[0]
+                         LIMIT 1;""").format(sql.Identifier(self.canvas_name)))
+        row = self.cur.fetchone()
+        return row[0] if row else None
 
     def get_collections(self) -> list | None:
         """
@@ -219,8 +252,11 @@ class CodeDataService:
             If any code does not belong to a collection, None will appear as a collection
             It is possible to have [None] if no collections exist
         """
-        self.cur.execute(f"""SELECT DISTINCT collection
-                         FROM {self.canvas_name};""")
+        self.cur.execute(
+            sql.SQL("SELECT DISTINCT collection FROM {};").format(
+                sql.Identifier(self.canvas_name)
+            )
+        )
         return [c[0] for c in self.cur.fetchall()]
 
     def fetch_codes(self) -> list[tuple]:
@@ -232,14 +268,18 @@ class CodeDataService:
             The tuple is of the following format:
                 (id, codeid, collection, text, color, position)
         """
-        self.cur.execute(f"""SELECT * FROM {self.canvas_name}""")
+        self.cur.execute(
+            sql.SQL("SELECT * FROM {}").format(sql.Identifier(self.canvas_name))
+        )
         return self.cur.fetchall()
     
     def delete_canvas_table(self):
         """
         Deletes the canvas' associated postgres database
         """
-        self.cur.execute(f"""DROP TABLE {self.canvas_name}""")
+        self.cur.execute(
+            sql.SQL("DROP TABLE {}").format(sql.Identifier(self.canvas_name))
+        )
 
 
 class CanvasDataService:
@@ -295,11 +335,17 @@ class CanvasDataService:
         elif canvas_name.strip() == "":
             raise ValueError("canvas_name cannot be an empty or whitespace string")
 
-        self.cur.execute(f"""INSERT INTO canvas (name) VALUES
-                         ('{canvas_name.strip()}');""")
-        
-        self.cur.execute(f"""SELECT * FROM canvas
-                         WHERE name = '{canvas_name}';""")
+        cleaned_name = canvas_name.strip()
+
+        self.cur.execute(
+            "INSERT INTO canvas (name) VALUES (%s);",
+            (cleaned_name,),
+        )
+
+        self.cur.execute(
+            "SELECT * FROM canvas WHERE name = %s;",
+            (cleaned_name,),
+        )
         
         return self.cur.fetchone()[0]
 
@@ -329,10 +375,13 @@ class CanvasDataService:
         if canvas_name.strip() == "":
             raise ValueError("Whitespace string given for canvas_name")
         
-        self.cur.execute(f"""SELECT id FROM canvas
-                         WHERE name = '{canvas_name}';""")
-        
-        return self.cur.fetchone()[0]
+        self.cur.execute(
+            "SELECT id FROM canvas WHERE name = %s;",
+            (canvas_name,),
+        )
+
+        row = self.cur.fetchone()
+        return row[0] if row else None
 
     def get_canvas_name(self, id: int = None) -> str | None:
         """
@@ -351,10 +400,13 @@ class CanvasDataService:
         if id < 0:
             raise ValueError("Incorrect id provided")
         
-        self.cur.execute(f"""SELECT name FROM canvas
-                         WHERE id = {id};""")
-        
-        return self.cur.fetchone()[0]
+        self.cur.execute(
+            "SELECT name FROM canvas WHERE id = %s;",
+            (id,),
+        )
+
+        row = self.cur.fetchone()
+        return row[0] if row else None
 
     def delete_canvas(self, canvas_name: str = None, id: int = None):
         """
@@ -375,15 +427,13 @@ class CanvasDataService:
         if id is not None:
             if id < 0:
                 raise ValueError("Incorrect id given in delete_canvas")
-        if canvas_name.strip() == "":
+        if canvas_name is not None and canvas_name.strip() == "":
             raise ValueError("Whitespace string given for canvas_name")
         
         if id is not None:            
-            self.cur.execute(f"""DELETE FROM canvas
-                            WHERE id = {id};""")
+            self.cur.execute("DELETE FROM canvas WHERE id = %s;", (id,))
         elif canvas_name is not None:
-            self.cur.execute(f"""DELETE FROM canvas
-                            WHERE name = '{canvas_name}';""")
+            self.cur.execute("DELETE FROM canvas WHERE name = %s;", (canvas_name,))
 
 
 if __name__ == "__main__":
