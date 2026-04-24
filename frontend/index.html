@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEMA Start Page</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #startPage {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      width: 350px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      font-size: 32px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #2d89ef;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #1b5fbf;
+    }
+
+    #canvasPage {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      background: #ffffff;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .toolbar h2 {
+      margin: 0;
+      margin-right: auto;
+      font-size: 22px;
+    }
+
+    #canvasArea {
+      flex: 1;
+      background-color: #fafafa;
+      border-top: 1px solid #ddd;
+      position: relative;
+    }
+
+    .sticky-note {
+        width: 160px;
+        min-height: 120px;
+        background-color: #ffef88;
+        border: 1px solid #d8c95f;
+        border-radius: 8px;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
+        padding: 12px;
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        font-size: 14px;
+        box-sizing: border-box;
+        cursor: grab;
+    }
+
+    .sticky-note.dragging {
+        cursor: grabbing;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div id="startPage">
+    <div class="container">
+      <h1>TEMA</h1>
+
+      <input
+        id="canvasNameInput"
+        type="text"
+        placeholder="Enter canvas name"
+        style="width: 100%; padding: 12px; margin-bottom: 12px; box-sizing: border-box;"
+      />
+
+      <button id="createCanvasBtn">Create New Canvas</button>
+      <button id="openCanvasBtn">Open Existing Canvas</button>
+
+
+      <div id="canvasList" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+
+  <div id="canvasPage" class="hidden">
+    <div class="toolbar">
+      <h2>Canvas</h2>
+      <button id="backBtn" style="width: auto; padding: 10px 16px;">Back</button>
+      <button id="addStickyBtn" style="width: auto; padding: 10px 16px;">Add Sticky Note</button>
+    </div>
+    <div id="canvasArea"></div>
+  </div>
+
+  <script>
+  const startPage = document.getElementById("startPage");
+  const canvasPage = document.getElementById("canvasPage");
+
+  const createCanvasBtn = document.getElementById("createCanvasBtn");
+  const openCanvasBtn = document.getElementById("openCanvasBtn");
+  const backBtn = document.getElementById("backBtn");
+  const addStickyBtn = document.getElementById("addStickyBtn");
+  const canvasArea = document.getElementById("canvasArea");
+  const canvasNameInput = document.getElementById("canvasNameInput");
+  const canvasList = document.getElementById("canvasList");
+
+  let currentCanvasId = null;
+  let currentCanvasName = null;
+
+  createCanvasBtn.addEventListener("click", async () => {
+    console.log("Create New Canvas button clicked");
+
+    const canvasName = canvasNameInput.value.trim();
+
+    if (!canvasName) {
+      alert("Please enter a canvas name.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/canvases", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: canvasName })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert("Could not create canvas: " + data.error);
+        console.error("Backend error:", data);
+        return;
+      }
+
+      console.log("Created canvas:", data);
+
+      currentCanvasId = data.id;
+      currentCanvasName = data.name;
+
+      document.querySelector(".toolbar h2").textContent =
+        `Canvas: ${currentCanvasName}`;
+
+      canvasArea.innerHTML = "";
+
+      startPage.classList.add("hidden");
+      canvasPage.classList.remove("hidden");
+
+    } catch (error) {
+      alert("Could not connect to backend.");
+      console.error("Connection error:", error);
+    }
+  });
+
+
+
+
+
+  openCanvasBtn.addEventListener("click", async () => {
+    console.log("Open Existing Canvas button clicked");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/canvases");
+      const canvases = await response.json();
+
+      if (!response.ok) {
+        alert("Could not load canvases.");
+        console.error("Backend error:", canvases);
+        return;
+      }
+
+      console.log("Loaded canvases:", canvases);
+
+      canvasList.innerHTML = "";
+
+      if (canvases.length === 0) {
+        canvasList.textContent = "No canvases found.";
+        return;
+      }
+
+      canvases.forEach((canvas) => {
+        const canvasButton = document.createElement("button");
+        canvasButton.textContent = `${canvas.id}: ${canvas.name}`;
+        canvasButton.style.backgroundColor = "#666";
+        canvasButton.style.marginTop = "8px";
+
+        canvasButton.addEventListener("click", () => {
+          currentCanvasId = canvas.id;
+          currentCanvasName = canvas.name;
+
+          console.log("Opened canvas:", {
+            id: currentCanvasId,
+            name: currentCanvasName
+          });
+
+          document.querySelector(".toolbar h2").textContent =
+            `Canvas: ${currentCanvasName}`;
+
+          startPage.classList.add("hidden");
+          canvasPage.classList.remove("hidden");
+
+          loadStickyNotesForCurrentCanvas();
+        });
+
+        canvasList.appendChild(canvasButton);
+      });
+
+    } catch (error) {
+      alert("Could not connect to backend.");
+      console.error("Connection error:", error);
+    }
+  });
+
+  backBtn.addEventListener("click", () => {
+    canvasPage.classList.add("hidden");
+    startPage.classList.remove("hidden");
+  });
+
+  function makeStickyDraggable(stickyNote) {
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    stickyNote.addEventListener("mousedown", (event) => {
+        if (event.target.classList.contains("sticky-note-text")) {
+        return;
+        }
+
+        isDragging = true;
+        stickyNote.classList.add("dragging");
+
+        offsetX = event.clientX - stickyNote.offsetLeft;
+        offsetY = event.clientY - stickyNote.offsetTop;
+    });
+
+
+    document.addEventListener("mousemove", (event) => {
+        if (!isDragging) return;
+
+        stickyNote.style.left = `${event.clientX - offsetX}px`;
+        stickyNote.style.top = `${event.clientY - offsetY}px`;
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          stickyNote.classList.remove("dragging");
+          saveStickyNote(stickyNote);
+        }
+    });
+  }
+
+function createStickyNoteElement(noteData) {
+  const stickyNote = document.createElement("div");
+  stickyNote.classList.add("sticky-note");
+
+  stickyNote.dataset.noteId = noteData.id;
+
+  stickyNote.style.left = `${noteData.x}px`;
+  stickyNote.style.top = `${noteData.y}px`;
+
+  const textArea = document.createElement("div");
+  textArea.classList.add("sticky-note-text");
+  textArea.contentEditable = true;
+  textArea.textContent = noteData.text;
+
+  stickyNote.appendChild(textArea);
+  canvasArea.appendChild(stickyNote);
+
+  makeStickyDraggable(stickyNote);
+
+  textArea.addEventListener("blur", () => {
+    saveStickyNote(stickyNote);
+  });
+
+  return stickyNote;
+}
+
+
+async function saveStickyNote(stickyNote) {
+  if (!currentCanvasId) {
+    console.error("No canvas is currently open.");
+    return;
+  }
+
+  const noteId = stickyNote.dataset.noteId;
+  const text = stickyNote.querySelector(".sticky-note-text").textContent;
+
+  const x = parseFloat(stickyNote.style.left);
+  const y = parseFloat(stickyNote.style.top);
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes/${noteId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: text,
+          x: x,
+          y: y,
+          color: 0
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Could not save note:", data);
+      return;
+    }
+
+    console.log("Saved note:", data);
+
+  } catch (error) {
+    console.error("Connection error while saving note:", error);
+  }
+}
+
+
+async function loadStickyNotesForCurrentCanvas() {
+  if (!currentCanvasId) {
+    console.error("No canvas selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`
+    );
+
+    const notes = await response.json();
+
+    if (!response.ok) {
+      console.error("Could not load notes:", notes);
+      return;
+    }
+
+    canvasArea.innerHTML = "";
+
+    notes.forEach(note => {
+      createStickyNoteElement(note);
+    });
+
+    console.log("Loaded notes:", notes);
+
+  } catch (error) {
+    console.error("Connection error while loading notes:", error);
+  }
+}
+
+
+addStickyBtn.addEventListener("click", async () => {
+  if (!currentCanvasId) {
+    alert("Please open or create a canvas first.");
+    return;
+  }
+
+  const noteData = {
+    id: Date.now(),
+    text: "New Sticky Note",
+    x: 40,
+    y: 40,
+    color: 0
+  };
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(noteData)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert("Could not create sticky note: " + data.error);
+      console.error("Backend error:", data);
+      return;
+    }
+
+    console.log("Created sticky note:", data);
+
+    createStickyNoteElement(noteData);
+
+  } catch (error) {
+    alert("Could not connect to backend.");
+    console.error("Connection error:", error);
+  }
+});
+
+
+  console.log("Frontend script loaded");
+
+  fetch("http://localhost:5000/api/health")
+    .then(response => response.json())
+    .then(data => {
+      console.log("Backend response:", data);
+    })
+    .catch(error => {
+      console.error("Backend connection failed:", error);
+    });
+
+
+</script>
+</body>
+</html>
