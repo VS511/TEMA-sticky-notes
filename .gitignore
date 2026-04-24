@@ -209,3 +209,5 @@ __marimo__/
 
 
 frontend/node_modules/
+# macOS
+.DS_Store
