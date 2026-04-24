@@ -10,6 +10,10 @@ class CodeDataService:
         if canvas_name is None:
             raise TypeError("table_name for CodeDataService cannot be of type None")
 
+        self.canvas_name = canvas_name
+
+    def __enter__(self):
+
         try:
             self.conn = psycopg2.connect(
                 dbname="dev_db",
@@ -24,7 +28,38 @@ class CodeDataService:
 
         self.cur = self.conn.cursor()
 
-        self.canvas_name = canvas_name
+        self.cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.canvas_name} (
+                         id SERIAL PRIMARY KEY,
+                         group VARCHAR(100),
+                         text VARCHAR(50),
+                         color INT,
+                         position POINT
+                         );
+                         """)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.conn.commit()
+        self.cur.close()
+        self.conn.close()
+
+    def create_code_entry() -> int:
+        pass
+
+    def delete_code_entry() -> int:
+        pass
+
+    def update_code_entry():
+        pass
+
+    def get_code_by_id() -> tuple:
+        pass
+
+    def get_groups() -> list[str]:
+        pass
+
+    def fetch_codes() -> list[tuple]:
+        pass
 
 
 class CanvasDataService:
