@@ -192,8 +192,9 @@ class CanvasDataService:
 
         if id is None and canvas_name is None:
             raise TypeError("id and canvas_name are None")
-        if id < 0:
-            raise ValueError("Incorrect id given in delete_canvas")
+        if id is not None:
+            if id < 0:
+                raise ValueError("Incorrect id given in delete_canvas")
         if canvas_name.strip() == "":
             raise ValueError("Whitespace string given for canvas_name")
         
