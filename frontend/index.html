@@ -308,6 +308,25 @@ function createStickyNoteElement(noteData) {
   textArea.textContent = noteData.text;
 
   stickyNote.appendChild(textArea);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "✕";
+  deleteBtn.style.cssText = "position:absolute; top:-18px; right:-8px; background:red; color:white; border:none; border-radius:50%; cursor:pointer; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;";
+
+  deleteBtn.addEventListener("click", async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/canvases/${currentCanvasId}/notes/${noteData.id}`,
+        { method: "DELETE" }
+      );
+      if (response.ok) {
+        stickyNote.remove();
+      }
+    } catch (error) {
+      console.error("Could not delete note:", error);
+    }
+  });
+
+  stickyNote.appendChild(deleteBtn);
   canvasArea.appendChild(stickyNote);
 
   makeStickyDraggable(stickyNote);
@@ -403,7 +422,7 @@ addStickyBtn.addEventListener("click", async () => {
   }
 
   const noteData = {
-    id: Date.now(),
+    id: Math.floor(Date.now() / 1000),// Unix timestamp in seconds to fit INT column in DB
     text: "New Sticky Note",
     x: 40,
     y: 40,

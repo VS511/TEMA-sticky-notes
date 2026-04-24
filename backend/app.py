@@ -10,7 +10,7 @@ app = Flask(__name__)
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
     return response
 
 
@@ -170,7 +170,17 @@ def update_note(canvas_id, note_id):
 
     except Exception as error:
         return jsonify({"error": str(error)}), 500
-    
+
+@app.route("/api/canvases/<int:canvas_id>/notes/<int:note_id>", methods=["DELETE"])
+def delete_note(canvas_id, note_id):
+    table_name = f"canvas_{canvas_id}"
+    try:
+        with CodeDataService(canvas_name=table_name) as code_service:
+            code_service.delete_code_entry(codeid=note_id)
+        return jsonify({"message": "Note deleted successfully"}), 200
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
 
