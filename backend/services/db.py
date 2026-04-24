@@ -54,13 +54,23 @@ class CanvasDataService:
                          );
                          """)
         return self
-    
+
     def __exit__(self, exc_type, exc, tb):
         self.conn.commit()
         self.cur.close()
         self.conn.close()
-        
+
     def create_canvas(self, canvas_name: str = None) -> int:
+        """
+        Create an entry into the canvas Postgres database with name `canvas_name`
+        # Parameters
+            canvas_name (str): The name of the canvas
+        # Raises
+            TypeError if canvas_name is None.
+            ValueError if canvas_name is a whitespace string
+        # Returns
+            An int corresponding to the canvases id in the Postgres database
+        """
 
         if canvas_name is None:
             raise TypeError("canvas_name cannot be None in create_canvas")
@@ -74,13 +84,69 @@ class CanvasDataService:
                          WHERE name = '{canvas_name}';""")
         
         return self.cur.fetchone()[0]
-    
+
     def fetch_canvases(self) -> list[tuple[int, str]]:
+        """
+        Get a list of canvases in the Postgres database
+        # Returns
+            A list containing tuple pairs of (database id, name)
+        """
         self.cur.execute("""SELECT * FROM canvas""")
         return self.cur.fetchall()
+    
+    def get_canvas_id(self, canvas_name: str = None) -> int | None:
+
+        if canvas_name.strip() == "":
+            raise ValueError("Whitespace string given for canvas_name")
+        
+        self.cur.execute(f"""SELECT id FROM canvas
+                         WHERE name = '{canvas_name}';""")
+        
+        return self.cur.fetchone()[0]
+
+    def get_canvas_name(self, id: int = None) -> str | None:
+
+        if id < 0:
+            raise ValueError("Incorrect id provided")
+        
+        self.cur.execute(f"""SELECT name FROM canvas
+                         WHERE id = {id};""")
+        
+        return self.cur.fetchone()[0]
+
+    def delete_canvas(self, canvas_name: str = None, id: int = None):
+        """
+        Deletes a canvas based on either its name or id in the Postgres database
+        # Parameters
+            canvas_name (str): The name of the canvas
+            id (int): The id of the canvas in the Postgres database
+        # Raises
+            ValueError if an id < 0 is given
+            ValueError if a whitespace string is provided for canvas_name
+        # Note
+            Only the canvas_name or id should be provided, providing both does not change the result
+        """
+
+        if id is not None:
+            if id < 0:
+                raise ValueError("Incorrect id given in delete_canvas")
+        if canvas_name.strip() == "":
+            raise ValueError("Whitespace string given for canvas_name")
+        
+        if id is not None:            
+            self.cur.execute(f"""DELETE FROM canvas
+                            WHERE id = {id};""")
+        elif canvas_name is not None:
+            self.cur.execute(f"""DELETE FROM canvas
+                            WHERE name = '{canvas_name}';""")
 
 
 if __name__ == "__main__":
     with CanvasDataService() as c:
+        print(c.delete_canvas("test"))
         print(c.create_canvas("test"))
+        print(c.fetch_canvases())
+        print(c.get_canvas_id("test"))
+        print(c.get_canvas_name(c.get_canvas_id("test")))
+        print(c.delete_canvas("test"))
         print(c.fetch_canvases())
