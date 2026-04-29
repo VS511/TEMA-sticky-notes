@@ -182,6 +182,6 @@ def delete_note(canvas_id, note_id):
         return jsonify({"error": str(error)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5005)
 
     

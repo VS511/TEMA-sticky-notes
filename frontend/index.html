@@ -160,7 +160,7 @@
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/canvases", {
+      const response = await fetch("http://localhost:5005/api/canvases", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -203,7 +203,7 @@
     console.log("Open Existing Canvas button clicked");
 
     try {
-      const response = await fetch("http://localhost:5000/api/canvases");
+      const response = await fetch("http://localhost:5005/api/canvases");
       const canvases = await response.json();
 
       if (!response.ok) {
@@ -315,7 +315,7 @@ function createStickyNoteElement(noteData) {
   deleteBtn.addEventListener("click", async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/canvases/${currentCanvasId}/notes/${noteData.id}`,
+        `http://localhost:5005/api/canvases/${currentCanvasId}/notes/${noteData.id}`,
         { method: "DELETE" }
       );
       if (response.ok) {
@@ -353,7 +353,7 @@ async function saveStickyNote(stickyNote) {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/canvases/${currentCanvasId}/notes/${noteId}`,
+      `http://localhost:5005/api/canvases/${currentCanvasId}/notes/${noteId}`,
       {
         method: "PUT",
         headers: {
@@ -391,7 +391,7 @@ async function loadStickyNotesForCurrentCanvas() {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`
+      `http://localhost:5005/api/canvases/${currentCanvasId}/notes`
     );
 
     const notes = await response.json();
@@ -431,7 +431,7 @@ addStickyBtn.addEventListener("click", async () => {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/api/canvases/${currentCanvasId}/notes`,
+      `http://localhost:5005/api/canvases/${currentCanvasId}/notes`,
       {
         method: "POST",
         headers: {
@@ -462,7 +462,7 @@ addStickyBtn.addEventListener("click", async () => {
 
   console.log("Frontend script loaded");
 
-  fetch("http://localhost:5000/api/health")
+  fetch("http://localhost:5005/api/health")
     .then(response => response.json())
     .then(data => {
       console.log("Backend response:", data);
