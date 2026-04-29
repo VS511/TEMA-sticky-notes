@@ -17,9 +17,7 @@ TEMA is intended to support **qualitative researchers** by providing a **canvas-
 
 - `**backend/`**: Flask backend (currently includes a health check endpoint).
 - `**docker/**`: Development Docker config (PostgreSQL).
-- `**requirements/**`: Dependency lists (Python).
-- `**doc/**`: Sprint PDFs (requirements, analysis, architecture).
-- `**src/**`: Placeholder directory (currently empty on `main`).
+- `**sprint_archive/**`: Sprint PDFs (requirements, analysis, architecture).
 
 ## Implemented features (so far)
 
@@ -63,7 +61,7 @@ The compose file currently sets:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements/python-requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ### 3) Run the backend

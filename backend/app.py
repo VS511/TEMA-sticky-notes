@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from services.db import CanvasDataService, CodeDataService
+from database.db import CanvasDataService, CodeDataService
 
 app = Flask(__name__)
 
