@@ -211,6 +211,9 @@
   const newGroupBtn = document.getElementById("newGroupBtn");
   const groupHelp = document.getElementById("groupHelp");
 
+  const backgroundColorInput = document.getElementById("backgroundColorInput");
+  const borderColorInput = document.getElementById("borderColorInput");
+
   let currentCanvasId = null;
   let currentCanvasName = null;
   let selectedStickyNote = null;
@@ -610,6 +613,25 @@ function createStickyNoteElement(noteData) {
   stickyNote.dataset.noteId = noteData.id;
   stickyNote.dataset.collection = (noteData.collection && String(noteData.collection).trim()) || "default";
 
+  stickyNote.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    if (selectedNote) {
+      selectedNote.classList.remove("selected");
+    }
+
+    selectedNote = stickyNote;
+    stickyNote.classList.add("selected");
+
+    const computedStyle = window.getComputedStyle(stickyNote);
+
+    backgroundColorInput.value = rgbToHex(computedStyle.backgroundColor);
+    borderColorInput.value = rgbToHex(computedStyle.borderColor);
+
+  });
+
+
+
   stickyNote.style.left = `${noteData.x}px`;
   stickyNote.style.top = `${noteData.y}px`;
   applyGroupStyleToSticky(stickyNote);
@@ -617,6 +639,14 @@ function createStickyNoteElement(noteData) {
     selectStickyNote(stickyNote);
     setUiStatus(`Selected note ${stickyNote.dataset.noteId}.`);
   });
+
+  if (noteData.backgroundColor) {
+    stickyNote.style.backgroundColor = noteData.backgroundColor;
+  }
+
+  if (noteData.borderColor) {
+    stickyNote.style.borderColor = noteData.borderColor;
+  } 
 
   const textArea = document.createElement("div");
   textArea.classList.add("sticky-note-text");
@@ -661,6 +691,32 @@ function createStickyNoteElement(noteData) {
 }
 
 
+canvasArea.addEventListener("click", () => {
+  if (selectedNote) {
+    selectedNote.classList.remove("selected");
+    selectedNote = null;
+  }
+});
+
+
+backgroundColorInput.addEventListener("input", () => {
+  if (!selectedNote) {
+    return;
+  }
+
+  selectedNote.style.backgroundColor = backgroundColorInput.value;
+  saveStickyNote(selectedNote);
+});
+
+borderColorInput.addEventListener("input", () => {
+  if (!selectedNote) {
+    return;
+  }
+
+  selectedNote.style.borderColor = borderColorInput.value;
+  saveStickyNote(selectedNote);
+});
+
 async function saveStickyNote(stickyNote) {
   if (!currentCanvasId) {
     console.error("No canvas is currently open.");
@@ -672,6 +728,9 @@ async function saveStickyNote(stickyNote) {
 
   const x = parseFloat(stickyNote.style.left);
   const y = parseFloat(stickyNote.style.top);
+
+  const backgroundColor = stickyNote.style.backgroundColor;
+  const borderColor = stickyNote.style.borderColor;
 
   try {
     const response = await fetch(
@@ -796,6 +855,23 @@ if (addStickyBtn) {
     .catch(error => {
       console.error("Backend connection failed:", error);
     });
+
+  function rgbToHex(rgb) {
+    const values = rgb.match(/\d+/g);
+
+    console.log("Converting RGB to Hex:", { rgb, values });
+
+    if (!values || values.length < 3) {
+      return "#000000";
+    }
+
+    const r = parseInt(values[0]).toString(16).padStart(2, "0");
+    const g = parseInt(values[1]).toString(16).padStart(2, "0");
+    const b = parseInt(values[2]).toString(16).padStart(2, "0");
+
+    return `#${r}${g}${b}`;
+  }
+
 
 
 </script>
