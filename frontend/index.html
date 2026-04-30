@@ -102,6 +102,32 @@
         cursor: grabbing;
     }
 
+    .sticky-note.selected {
+        outline: 2px solid #2d89ef;
+    }
+
+    .color-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .color-controls label {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .color-controls input[type="color"] {
+      width: 32px;
+      height: 32px;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
 
   </style>
 </head>
@@ -128,6 +154,19 @@
   <div id="canvasPage" class="hidden">
     <div class="toolbar">
       <h2>Canvas</h2>
+
+      <div class="color-controls">
+        <label>
+          Background Color:
+          <input id="backgroundColorInput" type="color" value="#ffef88">
+        </label>
+
+        <label>
+          Border Color:
+          <input id="borderColorInput" type="color" value="#d8c95f">
+        </label>
+      </div>
+
       <button id="backBtn" style="width: auto; padding: 10px 16px;">Back</button>
       <button id="addStickyBtn" style="width: auto; padding: 10px 16px;">Add Sticky Note</button>
     </div>
@@ -146,8 +185,13 @@
   const canvasNameInput = document.getElementById("canvasNameInput");
   const canvasList = document.getElementById("canvasList");
 
+  const backgroundColorInput = document.getElementById("backgroundColorInput");
+  const borderColorInput = document.getElementById("borderColorInput");
+
   let currentCanvasId = null;
   let currentCanvasName = null;
+
+  let selectedNote = null;
 
   createCanvasBtn.addEventListener("click", async () => {
     console.log("Create New Canvas button clicked");
@@ -299,8 +343,35 @@ function createStickyNoteElement(noteData) {
 
   stickyNote.dataset.noteId = noteData.id;
 
+  stickyNote.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    if (selectedNote) {
+      selectedNote.classList.remove("selected");
+    }
+
+    selectedNote = stickyNote;
+    stickyNote.classList.add("selected");
+
+    const computedStyle = window.getComputedStyle(stickyNote);
+
+    backgroundColorInput.value = rgbToHex(computedStyle.backgroundColor);
+    borderColorInput.value = rgbToHex(computedStyle.borderColor);
+
+  });
+
+
+
   stickyNote.style.left = `${noteData.x}px`;
   stickyNote.style.top = `${noteData.y}px`;
+
+  if (noteData.backgroundColor) {
+    stickyNote.style.backgroundColor = noteData.backgroundColor;
+  }
+
+  if (noteData.borderColor) {
+    stickyNote.style.borderColor = noteData.borderColor;
+  } 
 
   const textArea = document.createElement("div");
   textArea.classList.add("sticky-note-text");
@@ -339,6 +410,32 @@ function createStickyNoteElement(noteData) {
 }
 
 
+canvasArea.addEventListener("click", () => {
+  if (selectedNote) {
+    selectedNote.classList.remove("selected");
+    selectedNote = null;
+  }
+});
+
+
+backgroundColorInput.addEventListener("input", () => {
+  if (!selectedNote) {
+    return;
+  }
+
+  selectedNote.style.backgroundColor = backgroundColorInput.value;
+  saveStickyNote(selectedNote);
+});
+
+borderColorInput.addEventListener("input", () => {
+  if (!selectedNote) {
+    return;
+  }
+
+  selectedNote.style.borderColor = borderColorInput.value;
+  saveStickyNote(selectedNote);
+});
+
 async function saveStickyNote(stickyNote) {
   if (!currentCanvasId) {
     console.error("No canvas is currently open.");
@@ -350,6 +447,9 @@ async function saveStickyNote(stickyNote) {
 
   const x = parseFloat(stickyNote.style.left);
   const y = parseFloat(stickyNote.style.top);
+
+  const backgroundColor = stickyNote.style.backgroundColor;
+  const borderColor = stickyNote.style.borderColor;
 
   try {
     const response = await fetch(
@@ -363,7 +463,9 @@ async function saveStickyNote(stickyNote) {
           text: text,
           x: x,
           y: y,
-          color: 0
+          color: 0,
+          backgroundColor: backgroundColor,
+          borderColor: borderColor
         })
       }
     );
@@ -470,6 +572,23 @@ addStickyBtn.addEventListener("click", async () => {
     .catch(error => {
       console.error("Backend connection failed:", error);
     });
+
+  function rgbToHex(rgb) {
+    const values = rgb.match(/\d+/g);
+
+    console.log("Converting RGB to Hex:", { rgb, values });
+
+    if (!values || values.length < 3) {
+      return "#000000";
+    }
+
+    const r = parseInt(values[0]).toString(16).padStart(2, "0");
+    const g = parseInt(values[1]).toString(16).padStart(2, "0");
+    const b = parseInt(values[2]).toString(16).padStart(2, "0");
+
+    return `#${r}${g}${b}`;
+  }
+
 
 
 </script>

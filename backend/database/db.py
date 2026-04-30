@@ -9,8 +9,8 @@ class CodeDataService:
     Service to connect to a canvas' postgres table to edit its codes' data
     """
 
-    _columns: list[str] = ["id", "codeid", "collection", "text", "color", "position"]
-    _text_columns: list[str] = ["collection", "text"]
+    _columns: list[str] = ["id", "codeid", "collection", "text", "color", "position", "background_color", "border_color"]
+    _text_columns: list[str] = ["collection", "text", "background_color", "border_color"]
 
     @staticmethod
     def _format_value(entry: str, value):
@@ -58,12 +58,25 @@ class CodeDataService:
                          collection VARCHAR(100),
                          text VARCHAR(1000),
                          color INT,
-                         position POINT
+                         position POINT,
+                         background_color VARCHAR(20),
+                         border_color VARCHAR(20)
                          );
                          """).format(sql.Identifier(self.canvas_name)))
         self.cur.execute(sql.SQL("""ALTER TABLE {}
                          ALTER COLUMN codeid TYPE BIGINT;
                          """).format(sql.Identifier(self.canvas_name)))
+
+        self.cur.execute(sql.SQL("""
+            ALTER TABLE {}
+            ADD COLUMN IF NOT EXISTS background_color VARCHAR(20);
+        """).format(sql.Identifier(self.canvas_name)))
+
+        self.cur.execute(sql.SQL("""
+            ALTER TABLE {}
+            ADD COLUMN IF NOT EXISTS border_color VARCHAR(20);
+        """).format(sql.Identifier(self.canvas_name)))
+
         return self
 
     def __exit__(self, exc_type, exc, tb):

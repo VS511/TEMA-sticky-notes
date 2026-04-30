@@ -93,7 +93,9 @@ def get_notes(canvas_id):
                 "text": row[3],
                 "color": row[4],
                 "x": x,
-                "y": y
+                "y": y,
+                "backgroundColor": row[6],
+                "borderColor": row[7]
             })
 
         return jsonify(notes), 200
@@ -119,7 +121,9 @@ def create_note(canvas_id):
             "position": (
                 float(data.get("x", 40)),
                 float(data.get("y", 40))
-            )
+            ),
+            "background_color": data.get("backgroundColor", "#FFFF88"),
+            "border_color": data.get("borderColor", "#d8c95f")
         }
 
         with CodeDataService(canvas_name=table_name) as code_service:
@@ -159,6 +163,12 @@ def update_note(canvas_id, note_id):
                 float(data["x"]),
                 float(data["y"])
             )
+
+        if "backgroundColor" in data:
+            note_data["background_color"] = data["backgroundColor"]
+        
+        if "borderColor" in data:
+            note_data["border_color"] = data["borderColor"]
 
         with CodeDataService(canvas_name=table_name) as code_service:
             code_service.update_code_entry(**note_data)
