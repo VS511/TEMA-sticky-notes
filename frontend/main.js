@@ -1,5 +1,7 @@
 const { app, BrowserWindow } = require("electron");
-const path = require("path");
+
+/** Must match Flask port in backend/app.py. Start Flask before Electron. */
+const FRONTEND_URL = "http://127.0.0.1:5001/";
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -11,7 +13,8 @@ function createWindow() {
     }
   });
 
-  win.loadFile(path.join(__dirname, "index.html"));
+  // Bust stale cached HTML while iterating on the UI
+  win.loadURL(`${FRONTEND_URL}?_=${Date.now()}`);
 }
 
 app.whenReady().then(() => {
