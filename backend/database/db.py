@@ -45,10 +45,14 @@ class CodeDataService:
                 password="12345",
                 host="localhost",
                 port="5432",
+                connect_timeout=5,
             )
         except Exception as e:
             print(e)
-            return
+            raise ConnectionError(
+                "Could not connect to PostgreSQL. Start the Postgres service, "
+                "then ensure database dev_db exists for user dev (password in docker/development.yml)."
+            ) from e
 
         self.cur = self.conn.cursor()
 
@@ -80,9 +84,12 @@ class CodeDataService:
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        if getattr(self, "conn", None) is None:
+            return False
         self.conn.commit()
         self.cur.close()
         self.conn.close()
+        return False
 
     def create_code_entry(self, **kwargs) -> int:
         """
@@ -272,6 +279,23 @@ class CodeDataService:
         )
         return [c[0] for c in self.cur.fetchall()]
 
+    def get_collection_counts(self) -> list[tuple[str, int]]:
+        """
+        Returns (group_name, note_count) pairs for the current canvas.
+        NULL collections are treated as 'default'.
+        """
+        self.cur.execute(
+            sql.SQL(
+                """
+                SELECT COALESCE(collection, 'default') AS grp, COUNT(*)::int
+                FROM {}
+                GROUP BY COALESCE(collection, 'default')
+                ORDER BY grp;
+                """
+            ).format(sql.Identifier(self.canvas_name))
+        )
+        return [(row[0], row[1]) for row in self.cur.fetchall()]
+
     def fetch_codes(self) -> list[tuple]:
         """
         Gets all codes found within the canvas' postgres database
@@ -312,10 +336,14 @@ class CanvasDataService:
                 password="12345",
                 host="localhost",
                 port="5432",
+                connect_timeout=5,
             )
         except Exception as e:
             print(e)
-            return
+            raise ConnectionError(
+                "Could not connect to PostgreSQL. Start the Postgres service, "
+                "then ensure database dev_db exists for user dev (password in docker/development.yml)."
+            ) from e
 
         self.cur = self.conn.cursor()
 
@@ -327,9 +355,12 @@ class CanvasDataService:
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        if getattr(self, "conn", None) is None:
+            return False
         self.conn.commit()
         self.cur.close()
         self.conn.close()
+        return False
 
     def create_canvas(self, canvas_name: str = None) -> int:
         """
