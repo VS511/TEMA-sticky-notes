@@ -191,7 +191,7 @@
   /** Same origin as this page when served from Flask; fallback for file:// dev. */
   const API_BASE =
     window.location.protocol === "file:" || !window.location.origin
-      ? "http://127.0.0.1:5001"
+      ? "http://127.0.0.1:5000"
       : window.location.origin;
 
   const startPage = document.getElementById("startPage");

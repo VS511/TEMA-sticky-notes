@@ -247,7 +247,8 @@ def delete_note(canvas_id, note_id):
         return jsonify({"error": str(error)}), 500
 
 if __name__ == "__main__":
-    # 5000 is often blocked on Windows; keep in sync with frontend/main.js FRONTEND_URL.
-    app.run(debug=True, host="127.0.0.1", port=5001)
+    # Team default is 5000; allow local override on blocked machines.
+    port = int(os.environ.get("TEMA_PORT", "5000"))
+    app.run(debug=True, host="127.0.0.1", port=port)
 
     

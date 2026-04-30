@@ -1,7 +1,8 @@
 const { app, BrowserWindow } = require("electron");
 
-/** Must match Flask port in backend/app.py. Start Flask before Electron. */
-const FRONTEND_URL = "http://127.0.0.1:5001/";
+/** Must match Flask port in backend/app.py. Team default is 5000. */
+const FRONTEND_PORT = process.env.TEMA_PORT || "5000";
+const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}/`;
 
 function createWindow() {
   const win = new BrowserWindow({
