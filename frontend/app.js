@@ -249,6 +249,9 @@ createCanvasBtn.addEventListener("click", async () => {
     canvasPage.classList.remove("hidden");
     canvasPage.style.display = "flex";
     setUiStatus("");
+    if (canvasNameInput) {
+      canvasNameInput.value = "";
+    }
     await refreshGroupSelectDropdown();
   } catch (error) {
     const msg =
@@ -425,30 +428,17 @@ function createStickyNoteElement(noteData) {
 
   stickyNote.addEventListener("click", (event) => {
     event.stopPropagation();
-
-    if (selectedNote) {
-      selectedNote.classList.remove("selected");
+    selectStickyNote(stickyNote);
+    if (backgroundColorInput && borderColorInput) {
+      const computedStyle = window.getComputedStyle(stickyNote);
+      backgroundColorInput.value = rgbToHex(computedStyle.backgroundColor);
+      borderColorInput.value = rgbToHex(computedStyle.borderColor);
     }
-
-    selectedNote = stickyNote;
-    stickyNote.classList.add("selected");
-
-    const computedStyle = window.getComputedStyle(stickyNote);
-
-    backgroundColorInput.value = rgbToHex(computedStyle.backgroundColor);
-    borderColorInput.value = rgbToHex(computedStyle.borderColor);
-
   });
-
-
 
   stickyNote.style.left = `${noteData.x}px`;
   stickyNote.style.top = `${noteData.y}px`;
   applyGroupStyleToSticky(stickyNote);
-  stickyNote.addEventListener("click", () => {
-    selectStickyNote(stickyNote);
-    setUiStatus(`Selected note ${stickyNote.dataset.noteId}.`);
-  });
 
   if (noteData.backgroundColor) {
     stickyNote.style.backgroundColor = noteData.backgroundColor;
@@ -502,29 +492,29 @@ function createStickyNoteElement(noteData) {
 
 
 canvasArea.addEventListener("click", () => {
-  if (selectedNote) {
-    selectedNote.classList.remove("selected");
-    selectedNote = null;
+  if (selectedStickyNote) {
+    selectedStickyNote.classList.remove("selected");
+    selectedStickyNote = null;
   }
 });
 
 
 backgroundColorInput.addEventListener("input", () => {
-  if (!selectedNote) {
+  if (!selectedStickyNote) {
     return;
   }
 
-  selectedNote.style.backgroundColor = backgroundColorInput.value;
-  saveStickyNote(selectedNote);
+  selectedStickyNote.style.backgroundColor = backgroundColorInput.value;
+  saveStickyNote(selectedStickyNote);
 });
 
 borderColorInput.addEventListener("input", () => {
-  if (!selectedNote) {
+  if (!selectedStickyNote) {
     return;
   }
 
-  selectedNote.style.borderColor = borderColorInput.value;
-  saveStickyNote(selectedNote);
+  selectedStickyNote.style.borderColor = borderColorInput.value;
+  saveStickyNote(selectedStickyNote);
 });
 
 async function saveStickyNote(stickyNote) {
