@@ -1,0 +1,142 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  height: 100vh;
+  background-color: #f4f4f4;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#startPage {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 350px;
+}
+
+h1 {
+  margin-bottom: 30px;
+  font-size: 32px;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #2d89ef;
+  color: white;
+}
+
+button:hover {
+  background-color: #1b5fbf;
+}
+
+#uiStatus {
+  margin-top: 12px;
+  min-height: 1.25em;
+  font-size: 14px;
+  color: #b00020;
+  text-align: center;
+}
+
+#canvasPage {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  background: #ffffff;
+  padding: 12px 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.toolbar h2 {
+  margin: 0;
+  margin-right: auto;
+  font-size: 22px;
+}
+
+#canvasArea {
+  flex: 1;
+  background-color: #fafafa;
+  border-top: 1px solid #ddd;
+  position: relative;
+}
+
+.sticky-note {
+    width: 160px;
+    min-height: 120px;
+    background-color: #ffef88;
+    border: 1px solid #d8c95f;
+    border-radius: 8px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    font-size: 14px;
+    box-sizing: border-box;
+    cursor: grab;
+}
+
+.sticky-note.dragging {
+    cursor: grabbing;
+}
+
+.sticky-note.selected {
+  outline: 3px solid #2d89ef;
+  outline-offset: 2px;
+}
+
+.note-group-badge {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolbar label {
+  font-size: 14px;
+  color: #333;
+}
+
+.toolbar select {
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 200px;
+}
+
+.toolbar .toolbar-muted {
+  font-size: 13px;
+  color: #666;
+}
