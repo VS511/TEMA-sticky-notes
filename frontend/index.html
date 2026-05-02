@@ -32,6 +32,77 @@
       width: 350px;
     }
 
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .modal-panel {
+      width: min(420px, 100%);
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .modal-panel h2 {
+      margin: 0 0 18px;
+      font-size: 24px;
+    }
+
+    .modal-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    #canvasNameInput {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    #createCanvasStatus {
+      min-height: 1.25em;
+      margin-top: 10px;
+      color: #b00020;
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .modal-actions button {
+      width: auto;
+      min-width: 96px;
+      margin: 0;
+      padding: 10px 14px;
+    }
+
+    .secondary-button {
+      background-color: #666;
+    }
+
+    .secondary-button:hover {
+      background-color: #444;
+    }
+
     h1 {
       margin-bottom: 30px;
       font-size: 32px;
@@ -156,13 +227,6 @@
     <div class="container">
       <h1>TEMA</h1>
 
-      <input
-        id="canvasNameInput"
-        type="text"
-        placeholder="Enter canvas name"
-        style="width: 100%; padding: 12px; margin-bottom: 12px; box-sizing: border-box;"
-      />
-
       <button type="button" id="createCanvasBtn">Create New Canvas</button>
       <button type="button" id="openCanvasBtn">Open Existing Canvas</button>
 
@@ -172,16 +236,41 @@
     </div>
   </div>
 
+  <div id="createCanvasModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="createCanvasTitle">
+    <div class="modal-panel">
+      <h2 id="createCanvasTitle">Create New Canvas</h2>
+      <label for="canvasNameInput">Canvas name</label>
+      <input id="canvasNameInput" type="text" placeholder="Enter canvas name" />
+      <div id="createCanvasStatus" role="status" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button type="button" id="cancelCreateCanvasBtn" class="secondary-button">Cancel</button>
+        <button type="button" id="confirmCreateCanvasBtn">Create</button>
+      </div>
+    </div>
+  </div>
+
   <div id="canvasPage" class="hidden">
     <div class="toolbar">
       <h2>Canvas</h2>
+
+      <div>
+        <label for="backgroundColorInput">Note Background:</label>
+        <input type="color" id="backgroundColorInput" title="Change background color of selected note" />
+
+        <label for="borderColorInput" style="margin-left: 12px;">Note Border:</label>
+        <input type="color" id="borderColorInput" title="Change border color of selected note" />
+      </div>
+
       <button type="button" id="backBtn" style="width: auto; padding: 10px 16px;">Back</button>
       <button type="button" id="addStickyBtn" style="width: auto; padding: 10px 16px;">Add Sticky Note</button>
+
       <label for="groupSelect">Group</label>
       <select id="groupSelect" aria-label="Assign selected sticky to group"></select>
+
       <button id="applyGroupBtn" type="button" style="width: auto; padding: 10px 16px;">Apply</button>
       <input id="newGroupInput" type="text" placeholder="New group name" style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; min-width: 170px;" />
       <button id="newGroupBtn" type="button" style="width: auto; padding: 10px 16px;">Create/Assign</button>
+
       <span class="toolbar-muted" id="groupHelp">Click a sticky, then choose a group.</span>
     </div>
     <div id="canvasArea"></div>
@@ -198,11 +287,15 @@
   const canvasPage = document.getElementById("canvasPage");
 
   const createCanvasBtn = document.getElementById("createCanvasBtn");
+  const createCanvasModal = document.getElementById("createCanvasModal");
+  const confirmCreateCanvasBtn = document.getElementById("confirmCreateCanvasBtn");
+  const cancelCreateCanvasBtn = document.getElementById("cancelCreateCanvasBtn");
   const openCanvasBtn = document.getElementById("openCanvasBtn");
   const backBtn = document.getElementById("backBtn");
   const addStickyBtn = document.getElementById("addStickyBtn");
   const canvasArea = document.getElementById("canvasArea");
   const canvasNameInput = document.getElementById("canvasNameInput");
+  const createCanvasStatus = document.getElementById("createCanvasStatus");
   const canvasList = document.getElementById("canvasList");
   const uiStatus = document.getElementById("uiStatus");
   const groupSelect = document.getElementById("groupSelect");
@@ -217,6 +310,7 @@
   let currentCanvasId = null;
   let currentCanvasName = null;
   let selectedStickyNote = null;
+  
 
   const GROUP_BG_PALETTE = [
     "#ffef88",
@@ -264,6 +358,10 @@
         groupSelect.value = selectedStickyNote.dataset.collection || "";
       }
       setUiStatus(`Selected note ${selectedStickyNote.dataset.noteId}.`);
+
+      const noteStyle = window.getComputedStyle(selectedStickyNote);
+      backgroundColorInput.value = rgbToHex(noteStyle.backgroundColor);
+      borderColorInput.value = rgbToHex(noteStyle.borderColor);
     }
   }
 
@@ -364,10 +462,127 @@
     }
   }
 
+  function setCreateCanvasStatus(message) {
+    if (createCanvasStatus) {
+      createCanvasStatus.textContent = message || "";
+    }
+  }
+
+  function openCreateCanvasModal() {
+    if (!createCanvasModal) {
+      return;
+    }
+    createCanvasModal.classList.remove("hidden");
+    setCreateCanvasStatus("");
+    if (canvasNameInput) {
+      canvasNameInput.value = "";
+      canvasNameInput.focus();
+    }
+  }
+
+  function closeCreateCanvasModal() {
+    if (!createCanvasModal) {
+      return;
+    }
+    createCanvasModal.classList.add("hidden");
+    setCreateCanvasStatus("");
+  }
+
+  async function createCanvasFromInput() {
+    console.log("Create New Canvas confirmed", "API_BASE=", API_BASE);
+
+    const canvasName = (canvasNameInput && canvasNameInput.value
+      ? canvasNameInput.value
+      : ""
+    ).trim();
+
+    if (!canvasName) {
+      setCreateCanvasStatus("Enter a canvas name first.");
+      if (canvasNameInput) {
+        canvasNameInput.focus();
+      }
+      return;
+    }
+
+    setCreateCanvasStatus("Creating canvas...");
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch(`${API_BASE}/api/canvases`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: canvasName }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const raw = await response.text();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (parseErr) {
+        console.error("Create canvas: non-JSON body", response.status, raw.slice(0, 400));
+        setCreateCanvasStatus(
+          "Server returned non-JSON (HTTP " +
+            response.status +
+            "). Check that Flask and Postgres are running."
+        );
+        return;
+      }
+
+      if (!response.ok) {
+        setCreateCanvasStatus("Could not create canvas: " + (data.error || raw));
+        console.error("Backend error:", data);
+        return;
+      }
+
+      console.log("Created canvas:", data);
+
+      if (data.id == null || data.name == null) {
+        setCreateCanvasStatus("Unexpected response from server. Missing id or name.");
+        return;
+      }
+
+      currentCanvasId = data.id;
+      currentCanvasName = data.name;
+
+      const toolbarTitle = document.querySelector(".toolbar h2");
+      if (toolbarTitle) {
+        toolbarTitle.textContent = `Canvas: ${currentCanvasName}`;
+      }
+
+      canvasArea.innerHTML = "";
+
+      closeCreateCanvasModal();
+      startPage.classList.add("hidden");
+      startPage.style.display = "none";
+      canvasPage.classList.remove("hidden");
+      canvasPage.style.display = "flex";
+      setUiStatus("");
+      await refreshGroupSelectDropdown();
+    } catch (error) {
+      const msg =
+        error && error.name === "AbortError"
+          ? "Request timed out. Is Flask running on the same port as this page?"
+          : "Could not reach the server. Start Flask (python backend/app.py) then try again. Details: " +
+            (error && error.message ? error.message : String(error));
+      setCreateCanvasStatus(msg);
+      console.error("Connection error:", error);
+    }
+  }
+
   if (!createCanvasBtn || !openCanvasBtn) {
     setUiStatus("UI error: buttons not found (check index.html).");
   } else {
   createCanvasBtn.addEventListener("click", async () => {
+    openCreateCanvasModal();
+    return;
+
     console.log("Create New Canvas button clicked", "API_BASE=", API_BASE);
 
     const canvasName = (canvasNameInput && canvasNameInput.value
@@ -454,6 +669,25 @@
 
 
 
+
+  if (confirmCreateCanvasBtn) {
+    confirmCreateCanvasBtn.addEventListener("click", createCanvasFromInput);
+  }
+
+  if (cancelCreateCanvasBtn) {
+    cancelCreateCanvasBtn.addEventListener("click", closeCreateCanvasModal);
+  }
+
+  if (canvasNameInput) {
+    canvasNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        createCanvasFromInput();
+      }
+      if (event.key === "Escape") {
+        closeCreateCanvasModal();
+      }
+    });
+  }
 
   openCanvasBtn.addEventListener("click", async () => {
     console.log("Open Existing Canvas button clicked");
@@ -613,25 +847,6 @@ function createStickyNoteElement(noteData) {
   stickyNote.dataset.noteId = noteData.id;
   stickyNote.dataset.collection = (noteData.collection && String(noteData.collection).trim()) || "default";
 
-  stickyNote.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    if (selectedNote) {
-      selectedNote.classList.remove("selected");
-    }
-
-    selectedNote = stickyNote;
-    stickyNote.classList.add("selected");
-
-    const computedStyle = window.getComputedStyle(stickyNote);
-
-    backgroundColorInput.value = rgbToHex(computedStyle.backgroundColor);
-    borderColorInput.value = rgbToHex(computedStyle.borderColor);
-
-  });
-
-
-
   stickyNote.style.left = `${noteData.x}px`;
   stickyNote.style.top = `${noteData.y}px`;
   applyGroupStyleToSticky(stickyNote);
@@ -691,30 +906,30 @@ function createStickyNoteElement(noteData) {
 }
 
 
-canvasArea.addEventListener("click", () => {
-  if (selectedNote) {
-    selectedNote.classList.remove("selected");
-    selectedNote = null;
+canvasArea.addEventListener("click", (event) => {
+  if (event.target === canvasArea && selectedStickyNote) {
+    selectedStickyNote.classList.remove("selected");
+    selectedStickyNote = null;
   }
 });
 
 
 backgroundColorInput.addEventListener("input", () => {
-  if (!selectedNote) {
+  if (!selectedStickyNote) {
     return;
   }
 
-  selectedNote.style.backgroundColor = backgroundColorInput.value;
-  saveStickyNote(selectedNote);
+  selectedStickyNote.style.backgroundColor = backgroundColorInput.value;
+  saveStickyNote(selectedStickyNote);
 });
 
 borderColorInput.addEventListener("input", () => {
-  if (!selectedNote) {
+  if (!selectedStickyNote) {
     return;
   }
 
-  selectedNote.style.borderColor = borderColorInput.value;
-  saveStickyNote(selectedNote);
+  selectedStickyNote.style.borderColor = borderColorInput.value;
+  saveStickyNote(selectedStickyNote);
 });
 
 async function saveStickyNote(stickyNote) {
@@ -745,7 +960,9 @@ async function saveStickyNote(stickyNote) {
           x: x,
           y: y,
           color: 0,
-          collection: stickyNote.dataset.collection || "default"
+          collection: stickyNote.dataset.collection || "default",
+          backgroundColor: backgroundColor,
+          borderColor: borderColor
         })
       }
     );

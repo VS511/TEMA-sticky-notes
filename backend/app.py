@@ -229,6 +229,12 @@ def update_note(canvas_id, note_id):
                 return jsonify(err[0]), err[1]
             note_data["collection"] = coll
 
+        if "backgroundColor" in data:
+            note_data["background_color"] = data["backgroundColor"]
+
+        if "borderColor" in data:
+            note_data["border_color"] = data["borderColor"]
+
         with CodeDataService(canvas_name=table_name) as code_service:
             code_service.update_code_entry(**note_data)
 
